@@ -1,10 +1,14 @@
 import { Router } from "express";
-import { login, logout, refreshToken } from "../../controllers/auth/auth.controller.js";
+import {
+  checkPhone,
+  createPassword,
+  login,
+} from "../../controllers/auth/auth.controller.js";
 
 const router = Router();
 
 router.post("/login", login);
-router.post("/refresh-token", refreshToken);
-router.delete("/logout", logout);
+router.get("/check-phone/:phone", checkPhone);
+router.post("/create-password", createPassword);
 
 export default router;

@@ -8,9 +8,6 @@ dotenv.config();
 const PORT = process.env.TOKEN_SERVER_PORT;
 const app = express();
 
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient({ log: ["query", "error"] });
-
 app.use(express.json());''
 app.use(cors());
 app.use(bodyParser.json());
@@ -23,31 +20,8 @@ app.get("/", (req, res) => {
 import authRoute from "./routes/auth/auth.route.js";
 app.use("/api/auth", authRoute);
 
-import userRoute from "./routes/user/user.route.js";
-app.use("/api/user", userRoute);
+import qRoute from "./routes/queue/queue.route.js";
+app.use("/api/queue", qRoute);
 
-app.get("/init", async (req, res) => {
-  await prisma.prefix.createMany({
-    data: [
-      {
-        name: "นาย",
-        sortName: "นาย",
-      },
-      {
-        name: "นาง",
-        sortName: "นาง",
-      },
-      {
-        name: "นางสาว",
-        sortName: "น.ส.",
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  res.json({
-    message: "First initial successful",
-  });
-});
 
 app.listen(PORT, () => console.log(`App is listening on PORT ${PORT}`));

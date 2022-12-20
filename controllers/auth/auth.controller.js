@@ -5,13 +5,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { PrismaClient } from "@prisma/client";
-import { comparePassword } from "../../utils/bcrypt.js";
+import { comparePassword, hashPassword } from "../../utils/bcrypt.js";
 const prisma = new PrismaClient({ log: ["error"] });
 
 let refreshTokens = [];
 
 export function generateAccessToken(user) {
-  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "10m" });
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET);
 }
 
 export function generateRefreshToken(user) {
@@ -48,35 +48,25 @@ export function validateToken(req, res, next) {
 }
 
 export const login = async (req, res) => {
-  const { username, password } = req.body;
+  const { phone, password } = req.body;
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.member.findUnique({
     where: {
-      username: username,
+      MobileNo: phone,
     },
     select: {
-      id: true,
-      username: true,
+      ID: true,
+      ThFrist: true,
+      ThLast: true,
+      HnCode: true,
       password: true,
-      userDetail: {
-        select: {
-          fName: true,
-          lName: true,
-          prefix: {
-            select: {
-              name: true,
-              sortName: true,
-            },
-          },
-        },
-      },
     },
   });
 
   if (!user)
     return res.status(401).json({
       error: true,
-      message: "username is invalid",
+      message: "phone is invalid",
     });
 
   //check password
@@ -92,46 +82,83 @@ export const login = async (req, res) => {
   }
 
   const payload = {
-    userId: user.id,
-    username: user.username,
+    userId: user.ID,
   };
 
-  const accessToken = generateAccessToken({ user: payload });
-  const refreshToken = generateRefreshToken({ user: payload });
-  refreshTokens.push(refreshToken);
-
+  const accessToken = generateAccessToken(payload);
   res.status(200).json({
     error: false,
     message: "login success",
     accessToken,
-    refreshToken,
+    user,
   });
 };
 
-export const refreshToken = (req, res) => {
-  const authHeader = req.headers["authorization"] ?? "";
-  const token = authHeader.split(" ")[1];
+export const checkPhone = async (req, res) => {
+  const { phone } = req.params;
 
-  if (!token) return res.status(401).send({ error: "No token provided" });
+  const user = await prisma.member.findUnique({
+    where: {
+      MobileNo: phone,
+    },
+    select: {
+      ID: true,
+      ThFrist: true,
+      ThLast: true,
+      HnCode: true,
+      password: true,
+    },
+  });
 
-  if (!refreshTokens.includes(token))
-    return res.status(400).send("Refresh Token Invalid");
+  if (!user)
+    return res.status(401).json({
+      error: true,
+      message: "phone is invalid",
+    });
 
-  //remove the old refreshToken from the refreshTokens list
-  refreshTokens = refreshTokens.filter((c) => c != token);
-
-  jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err) return res.status(403).send("Token invalid");
-
-    const accessToken = generateAccessToken({ user: user.user });
-    const refreshToken = generateRefreshToken({ user: user.user });
-
-    res.json({ accessToken, refreshToken });
+  return res.status(200).json({
+    error: false,
+    message: "checked phone",
+    firstLogin: user.password === "" || user.password === null ? true : false,
+    user,
   });
 };
 
-export const logout = (req, res) => {
-  refreshTokens = refreshTokens.filter((c) => c != req.body.token);
-  //remove the old refreshToken from the refreshTokens list
-  res.status(204).send("Logged out!");
+export const createPassword = async (req, res) => {
+  const { phone, password } = req.body;
+
+  const passwordHash = hashPassword(password);
+  const result = await prisma.member.update({
+    where: {
+      MobileNo: phone,
+    },
+    data: {
+      password: passwordHash,
+    },
+  });
+
+  const user = await prisma.member.findUnique({
+    where: {
+      ID: result.ID,
+    },
+    select: {
+      ID: true,
+      ThFrist: true,
+      ThLast: true,
+      HnCode: true,
+      password: true,
+    },
+  });
+
+  const payload = {
+    userId: user.ID,
+  };
+
+  const accessToken = generateAccessToken(payload);
+  res.status(200).json({
+    error: false,
+    message: "create password success",
+    accessToken,
+    user,
+  }); 
 };
