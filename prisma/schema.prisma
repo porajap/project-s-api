@@ -17,52 +17,56 @@ model examination_room {
 }
 
 model register_at {
-  ID         Int @default(autoincrement())
+  ID         Int          @default(autoincrement())
   MemberID   Int
+  member     member       @relation("memberRegisterAt", fields: [MemberID], references: [ID])
   organizeId Int
+  organize   organization @relation("organizeRegister", fields: [organizeId], references: [ID])
 
   @@id([ID, MemberID, organizeId])
+  @@index([MemberID, organizeId])
 }
 
 model member {
-  ID              Int       @default(autoincrement())
-  Card            Boolean?  @default(dbgenerated("b'0'")) @db.Bit(1)
+  ID              Int           @default(autoincrement())
+  Card            Boolean?      @default(dbgenerated("b'0'")) @db.Bit(1)
   organization_id Int?
-  HnCode          String?   @default("") @db.VarChar(255)
-  username        String?   @db.VarChar(20)
-  MobileNo        String?   @unique @default("") @db.VarChar(50)
-  password        String?   @db.VarChar(100)
-  IsBoss          Boolean?  @default(false)
-  Modify_DateTime DateTime? @db.DateTime(0)
-  ThId            String?   @default("\u0000") @db.VarChar(50)
-  ThTitle         String?   @db.VarChar(10)
-  ThFrist         String?   @db.VarChar(50)
-  ThMiddle        String?   @db.VarChar(20)
-  ThLast          String?   @db.VarChar(50)
-  EnTitle         String?   @db.VarChar(10)
-  EnFrist         String?   @db.VarChar(50)
-  EnMiddle        String?   @db.VarChar(20)
-  EnLast          String?   @db.VarChar(50)
-  ThBirth         String?   @db.VarChar(30)
-  EnBirth         String?   @db.VarChar(30)
-  ThGender        String?   @db.VarChar(10)
-  EnGender        String?   @db.VarChar(10)
-  Place           String?   @db.VarChar(250)
-  ThIssue         String?   @db.VarChar(20)
-  EnIssue         String?   @db.VarChar(20)
-  ThExpiry        String?   @db.VarChar(20)
-  EnExpiry        String?   @db.VarChar(20)
-  AddNum          String?   @default("") @db.VarChar(20)
-  AddMoo          String?   @default("") @db.VarChar(20)
-  AddTok          String?   @db.VarChar(255)
-  AddSoi          String?   @db.VarChar(255)
-  AddRoad         String?   @db.VarChar(255)
-  AddTambol       String?   @db.VarChar(255)
-  AddUmper        String?   @db.VarChar(255)
-  AddCity         String?   @db.VarChar(255)
-  Number          String?   @db.VarChar(20)
-  Picture         String?   @db.Text
-  queue           queue[]   @relation("memberDetail")
+  HnCode          String?       @default("") @db.VarChar(255)
+  username        String?       @db.VarChar(20)
+  MobileNo        String?       @unique @default("") @db.VarChar(50)
+  password        String?       @db.VarChar(100)
+  IsBoss          Boolean?      @default(false)
+  Modify_DateTime DateTime?     @db.DateTime(0)
+  ThId            String?       @default("\u0000") @db.VarChar(50)
+  ThTitle         String?       @db.VarChar(10)
+  ThFrist         String?       @db.VarChar(50)
+  ThMiddle        String?       @db.VarChar(20)
+  ThLast          String?       @db.VarChar(50)
+  EnTitle         String?       @db.VarChar(10)
+  EnFrist         String?       @db.VarChar(50)
+  EnMiddle        String?       @db.VarChar(20)
+  EnLast          String?       @db.VarChar(50)
+  ThBirth         String?       @db.VarChar(30)
+  EnBirth         String?       @db.VarChar(30)
+  ThGender        String?       @db.VarChar(10)
+  EnGender        String?       @db.VarChar(10)
+  Place           String?       @db.VarChar(250)
+  ThIssue         String?       @db.VarChar(20)
+  EnIssue         String?       @db.VarChar(20)
+  ThExpiry        String?       @db.VarChar(20)
+  EnExpiry        String?       @db.VarChar(20)
+  AddNum          String?       @default("") @db.VarChar(20)
+  AddMoo          String?       @default("") @db.VarChar(20)
+  AddTok          String?       @db.VarChar(255)
+  AddSoi          String?       @db.VarChar(255)
+  AddRoad         String?       @db.VarChar(255)
+  AddTambol       String?       @db.VarChar(255)
+  AddUmper        String?       @db.VarChar(255)
+  AddCity         String?       @db.VarChar(255)
+  Number          String?       @db.VarChar(20)
+  Picture         String?       @db.Text
+  queue           queue[]       @relation("memberDetail")
+  register_at     register_at[] @relation("memberRegisterAt")
 
   @@id([ID])
 }
@@ -83,6 +87,7 @@ model organization {
   organization_type_id Int
   organizeType         organization_type @relation("organizeType", fields: [organization_type_id], references: [id])
   queue                queue[]           @relation("organizeDetail")
+  registerAt           register_at[]     @relation("organizeRegister")
 }
 
 model organization_type {
@@ -96,7 +101,7 @@ model queue {
   ID              Int           @id @default(autoincrement())
   MemberID        Int
   QueueNo         String?       @default("") @db.VarChar(5)
-  CreateDate      DateTime     @db.Date
+  CreateDate      DateTime      @db.Date
   ExamRoomID      Int?
   Confirm         Boolean?      @default(dbgenerated("b'0'")) @db.Bit(1)
   Reserve         Boolean?      @default(dbgenerated("b'0'")) @db.Bit(1)
@@ -112,7 +117,7 @@ model queue {
   @@unique(fields: [CreateDate, MemberID, organization_id], name: "queueOfToDay")
 }
 
-model queue_detail { 
+model queue_detail {
   ID              Int       @id @default(autoincrement())
   qId             Int?      @unique
   queue           queue?    @relation(fields: [qId], references: [ID], onDelete: Cascade)

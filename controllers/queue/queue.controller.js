@@ -46,6 +46,29 @@ export const scanQr = async (req, res) => {
   });
 };
 
+export const getRegisterAt = async (req, res) => {
+  const { userId } = req.user;
+
+  const results = await prisma.register_at.findMany({
+    where: {
+      MemberID: userId,
+    },
+    include: {
+      organize: {
+        include: {
+          organizeType: true,
+        },
+      },
+    },
+  });
+
+  res.status(200).json({
+    error: false,
+    message: `register ${results.length}`,
+    data: results,
+  });
+};
+
 function formatDate(date) {
   var d = new Date(date),
     month = "" + (d.getMonth() + 1),
