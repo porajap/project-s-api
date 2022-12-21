@@ -1,111 +1,112 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient({ log: ["error", "query"] });
+import db from "../../db/database.js";
 
 export const scanQr = async (req, res) => {
   const { userId } = req.user;
   const { qNumber, organizeId } = req.body;
 
-  let date = formatDate(new Date());
+  let str =
+    "SELECT COUNT(QueueNo) AS countQ FROM queue WHERE QueueNo = ? AND CreateDate = DATE(NOW()) AND organization_id = ?";
 
-  const queue = await prisma.queue.findUnique({
-    select: {
-      ID: true,
-    },
-    where: {
-      queueOfToDay: {
-        MemberID: userId,
-        CreateDate: new Date(date),
-        organization_id: +organizeId,
-      },
-    },
-  });
+  db.query(str, [qNumber, organizeId], (err, results) => {
+    const countQ = results[0].countQ;
+    if (countQ > 0) {
+      return res.status(200).json({
+        error: true,
+        status: 200,
+        message: "ไม่สามารถสแกนคิวซ้ำได้",
+      });
+    }
 
-  console.log("queue", queue);
-
-  if (queue) {
-    res.status(200).json({
-      error: true,
-      message: "Queue already exists",
+    str =
+      "INSERT INTO queue (MemberID, QueueNo, CreateDate, ExamRoomID, Confirm, Modify_DateTime, organization_id)VALUES(?)";
+    const params = [
+      userId,
+      `${qNumber}`,
+      new Date(),
+      1,
+      0,
+      new Date(),
+      organizeId,
+    ];
+    db.query(str, [params], (err, ressult) => {
+      return res.status(200).json({
+        error: true,
+        status: 200,
+        message: `สร้างคิวสำเร็จ ${ressult}`,
+      });
     });
-    return;
-  }
-
-  await prisma.queue.create({
-    data: {
-      MemberID: userId,
-      QueueNo: qNumber,
-      CreateDate: new Date(),
-      Modify_DateTime: new Date(),
-      organization_id: +organizeId,
-    },
-  });
-
-  res.status(200).json({
-    error: false,
-    message: "scan successful",
   });
 };
 
-export const getRegisterAt = async (req, res) => {
+export const getQueueDetail = async (req, res) => {
   const { userId } = req.user;
-
-  const results = await prisma.register_at.findMany({
-    where: {
-      MemberID: userId,
-    },
-    include: {
-      organize: {
-        include: {
-          organizeType: true,
-        },
-      },
-    },
-  });
-
-  res.status(200).json({
-    error: false,
-    message: `register ${results.length}`,
-    data: results,
-  });
-};
-
-export const getQueueToday = async (req, res) => {
-  const { userId } = req.user;
-
   const { organizeId } = req.body;
 
-  let date = formatDate(new Date());
+  let str = `SELECT 
+              queue.ID AS id,
+              QueueNo AS queueNo,
+              MemberID AS memberId,
+              queue.ExamRoomID AS roomId,
+              room.Name AS roomName,
+              DATE_FORMAT(queue.CreateDate, '%Y-%m-%d') AS createdAt,
+              DATE_FORMAT(queue.Modify_DateTime, '%d/%m/%Y') AS dateAt,
+              TIME_FORMAT(queue.Modify_DateTime, '%H:%i') AS timeAt,
+              IF(queue.Confirm = 1, 1, 0) AS isConfirm
+              
+              FROM queue
+              
+              INNER JOIN examination_room room
+              ON queue.ExamRoomID = room.ID
+              
+              WHERE queue.MemberID = ? AND queue.organization_id = ?
 
-  const result = await prisma.queue.findUnique({
-    where: {
-      queueOfToDay: {
-        MemberID: userId,
-        CreateDate: new Date(date),
-        organization_id: +organizeId,
-      }, 
-    },
-    include: {
-      queue_detail: {
-        room: true,
-      },
-    }, 
-  }); 
+              AND DATE(queue.CreateDate) = DATE(NOW())`;
 
-  res.status(200).json({
-    error: false,
-    message: `get queue today`,
-    data: result,
+  db.query(str, [userId, organizeId], (err, results) => {
+    if (err || results.length == 0) {
+      return res.status(400).json({
+        error: false,
+        message: "ไม่พบคิว",
+        data: null,
+      });
+    }
+    const queue = results[0];
+    const queueId = queue.id;
+
+    str = `SELECT 
+  
+              queue_detail.ID AS id,
+              ExamRoomID AS roomId,
+              room.Name AS roomName,
+              DATE_FORMAT(StartTime, '%d/%m/%Y, %H:%i') AS startTime,
+              DATE_FORMAT(EndTime, '%d/%m/%Y, %H:%i') AS endTime,
+              qNo AS queueOfRoom,
+              IF(Success, 1, 0) AS isSuccess
+              
+            FROM queue_detail
+            
+            INNER JOIN examination_room room
+            ON queue_detail.ExamRoomID = room.ID
+            
+            WHERE DATE(queue.CreateDate) = DATE(NOW())
+            
+            AND queue_detail.queueId = ?
+            
+            AND queue_detail.Success = 0`;
+
+    db.query(str, [queueId], (err, results) => {
+      let detail = null;
+      if (err || results.length == 0) {
+        detail = null;
+      } else {
+        detail = results[0];
+      }
+
+      return res.status(400).json({
+        error: false,
+        message: "ไม่พบคิว",
+        data: { queue, detail },
+      });
+    });
   });
 };
-
-function formatDate(date) {
-  var d = new Date(date),
-    month = "" + (d.getMonth() + 1),
-    day = "" + d.getDate(),
-    year = d.getFullYear();
-
-  if (month.length < 2) month = "0" + month;
-  if (day.length < 2) day = "0" + day;
-
-  return [year, month, day].join("-");
-}

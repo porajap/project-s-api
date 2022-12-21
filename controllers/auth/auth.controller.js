@@ -1,12 +1,10 @@
 /* eslint-disable no-undef */
-
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
 
-import { PrismaClient } from "@prisma/client";
 import { comparePassword, hashPassword } from "../../utils/bcrypt.js";
-const prisma = new PrismaClient({ log: ["error"] });
+import db from "../../db/database.js";
 
 let refreshTokens = [];
 
@@ -50,77 +48,83 @@ export function validateToken(req, res, next) {
 export const login = async (req, res) => {
   const { phone, password } = req.body;
 
-  const user = await prisma.member.findUnique({
-    where: {
-      MobileNo: phone,
-    },
-    select: {
-      ID: true,
-      ThFrist: true,
-      ThLast: true,
-      HnCode: true,
-      password: true,
-    },
-  });
+  let str = `SELECT
+              ID,
+              MobileNo,
+              password, 
+              ThFrist,
+              ThLast,
+              HnCode
+            FROM
+              member
+              
+            WHERE MobileNo = ?`;
 
-  if (!user)
-    return res.status(401).json({
-      error: true,
-      message: "phone is invalid",
-    });
+  db.query(str, [phone], (err, results) => {
+    if (err || results.length == 0) {
+      return res.status(401).json({
+        error: true,
+        message: "phone is invalid",
+      });
+    } else {
+      //check password
+      const user = results[0];
+      const passwordDb = user.password;
 
-  //check password
-  const passwordDb = user.password;
+      if (!comparePassword(password, passwordDb)) {
+        return res.status(401).json({
+          error: true,
+          message: "password is invalid",
+        });
+      }
 
-  if (!comparePassword(password, passwordDb)) {
-    res.status(401).json({
-      error: true,
-      message: "password is invalid",
-    });
+      const payload = {
+        userId: user.ID,
+      };
 
-    return;
-  }
-
-  const payload = {
-    userId: user.ID,
-  };
-
-  const accessToken = generateAccessToken(payload);
-  res.status(200).json({
-    error: false,
-    message: "login success",
-    accessToken,
-    user,
+      const accessToken = generateAccessToken(payload);
+      res.status(200).json({
+        error: false,
+        message: "login success",
+        accessToken,
+        user,
+      });
+    }
   });
 };
 
 export const checkPhone = async (req, res) => {
   const { phone } = req.params;
 
-  const user = await prisma.member.findUnique({
-    where: {
-      MobileNo: phone,
-    },
-    select: {
-      ID: true,
-      ThFrist: true,
-      ThLast: true,
-      HnCode: true,
-      password: true,
-    },
-  });
+  let str = `SELECT
+              ID,
+              MobileNo,
+              password, 
+              ThFrist,
+              ThLast,
+              HnCode
+            FROM
+              member
+              
+            WHERE MobileNo = ?`;
 
-  if (!user)
-    return res.status(401).json({
-      error: true,
-      message: "phone is invalid",
-    });
+  db.query(str, [phone], (err, results) => {
+    if (err || results.length == 0) {
+      return res.status(401).json({
+        error: true,
+        message: "phone is invalid",
+      });
+    } else {
+      const user = results[0];
 
-  return res.status(200).json({
-    error: false,
-    message: "checked phone",
-    firstLogin: user.password === "" || user.password === null ? true : false,
-    user,
+      return res.status(200).json({
+        error: false,
+        message: "checked phone",
+        firstLogin:
+          user.password === "" || user.password === null ? true : false,
+        user,
+      });
+    }
   });
 };
 
@@ -128,37 +132,34 @@ export const createPassword = async (req, res) => {
   const { phone, password } = req.body;
 
   const passwordHash = hashPassword(password);
-  const result = await prisma.member.update({
-    where: {
-      MobileNo: phone,
-    },
-    data: {
-      password: passwordHash,
-    },
+
+  let str = `UPDATE member SET password = ? WHERE MobileNo = ?`;
+
+  db.query(str, [passwordHash, phone], () => {
+    let str = `SELECT
+                  ID,
+                  MobileNo,
+                  password, 
+                  ThFrist,
+                  ThLast,
+                  HnCode
+                FROM
+                  member
+                  
+                WHERE MobileNo = ?`;
+    db.query(str, [phone], (err, results) => {
+      const user = results[0];
+      const payload = {
+        userId: user.ID,
+      };
+
+      const accessToken = generateAccessToken(payload);
+      res.status(200).json({
+        error: false,
+        message: "login success",
+        accessToken,
+        user,
+      });
+    });
   });
-
-  const user = await prisma.member.findUnique({
-    where: {
-      ID: result.ID,
-    },
-    select: {
-      ID: true,
-      ThFrist: true,
-      ThLast: true,
-      HnCode: true,
-      password: true,
-    },
-  });
-
-  const payload = {
-    userId: user.ID,
-  };
-
-  const accessToken = generateAccessToken(payload);
-  res.status(200).json({
-    error: false,
-    message: "create password success",
-    accessToken,
-    user,
-  }); 
 };
