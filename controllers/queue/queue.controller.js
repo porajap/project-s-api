@@ -69,6 +69,35 @@ export const getRegisterAt = async (req, res) => {
   });
 };
 
+export const getQueueToday = async (req, res) => {
+  const { userId } = req.user;
+
+  const { organizeId } = req.body;
+
+  let date = formatDate(new Date());
+
+  const result = await prisma.queue.findUnique({
+    where: {
+      queueOfToDay: {
+        MemberID: userId,
+        CreateDate: new Date(date),
+        organization_id: +organizeId,
+      }, 
+    },
+    include: {
+      queue_detail: {
+        room: true,
+      },
+    }, 
+  }); 
+
+  res.status(200).json({
+    error: false,
+    message: `get queue today`,
+    data: result,
+  });
+};
+
 function formatDate(date) {
   var d = new Date(date),
     month = "" + (d.getMonth() + 1),
