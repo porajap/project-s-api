@@ -129,10 +129,23 @@ export const getQueueDetail = async (req, res) => {
             detail.queueFront = queueFront;
           }
 
-          return res.status(400).json({
-            error: false,
-            message: "queue detail",
-            data: { queue, detail },
+          str = `
+                SELECT 
+                  m.ThTitle,
+                  m.ThFrist,
+                  m.ThLast,
+                  m.HnCode,
+                  m.MobileNo
+                FROM member m
+                WHERE m.ID = ?`;
+          db.query(str, [userId], (err, results) => {
+            const userDetail = results[0];
+
+            return res.status(400).json({
+              error: false,
+              message: "queue detail",
+              data: { userDetail, queue, detail },
+            });
           });
         });
       }
