@@ -5,7 +5,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 dotenv.config();
 
-const PORT = process.env.TOKEN_SERVER_PORT;
+const PORT = process.env.TOKEN_SERVER_PORT || 4000;
 const app = express();
 
 app.use(express.json());''
