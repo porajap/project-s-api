@@ -64,7 +64,7 @@ export const getQueueDetail = async (req, res) => {
 
   db.query(str, [userId, organizeId], (err, results) => {
     if (err || results.length == 0) {
-      return res.status(400).json({
+      return res.status(200).json({
         error: false,
         message: "queue not found",
         data: null,
@@ -142,7 +142,7 @@ export const getQueueDetail = async (req, res) => {
           db.query(str, [userId], (err, results) => {
             const userDetail = results[0];
 
-            return res.status(400).json({
+            return res.status(200).json({
               error: false,
               message: "queue detail",
               data: { userDetail, queue, detail },
@@ -194,7 +194,7 @@ export const confirmQueue = async (req, res) => {
       console.log([params]);
 
       db.query(str, [params], (err, result) => {
-        return res.status(400).json({
+        return res.status(200).json({
           error: false,
           message: "confirm successful",
         });
@@ -233,10 +233,24 @@ export const getRegisterAt = async (req, res) => {
       });
     }
 
-    return res.status(400).json({
+    return res.status(200).json({
       error: false,
       message: `register ${results.length}`,
       data: results,
+    });
+  });
+};
+
+export const updateHNCode = async (req, res) => {
+  const { userId } = req.user;
+  const { hnCode } = req.body;
+
+  let str = `UPDATE member SET HnCode = ? WHERE ID = ?`;
+
+  db.query(str, [hnCode, userId], (err, result) => {
+    return res.status(200).json({
+      error: false,
+      message: "update successful",
     });
   });
 };
