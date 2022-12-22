@@ -13,7 +13,7 @@ export const scanQr = async (req, res) => {
       return res.status(200).json({
         error: true,
         status: 200,
-        message: "ไม่สามารถสแกนคิวซ้ำได้",
+        message: "duplicate",
       });
     }
 
@@ -32,7 +32,7 @@ export const scanQr = async (req, res) => {
       return res.status(200).json({
         error: true,
         status: 200,
-        message: `สร้างคิวสำเร็จ ${ressult}`,
+        message: `created`,
       });
     });
   });
@@ -66,7 +66,7 @@ export const getQueueDetail = async (req, res) => {
     if (err || results.length == 0) {
       return res.status(400).json({
         error: false,
-        message: "ไม่พบคิว",
+        message: "queue not found",
         data: null,
       });
     }
@@ -104,7 +104,7 @@ export const getQueueDetail = async (req, res) => {
 
       return res.status(400).json({
         error: false,
-        message: "ไม่พบคิว",
+        message: "queue detail",
         data: { queue, detail },
       });
     });
