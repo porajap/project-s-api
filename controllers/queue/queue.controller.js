@@ -78,6 +78,7 @@ export const getQueueDetail = async (req, res) => {
               queue_detail.ID AS id,
               ExamRoomID AS roomId,
               room.Name AS roomName,
+              queue_detail.Counter,
               DATE_FORMAT(StartTime, '%d/%m/%Y, %H:%i') AS startTime,
               DATE_FORMAT(EndTime, '%d/%m/%Y, %H:%i') AS endTime,
               qNo AS queueOfRoom,
