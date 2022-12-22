@@ -110,7 +110,7 @@ export const checkPhone = async (req, res) => {
 
   db.query(str, [phone], (err, results) => {
     if (err || results.length == 0) {
-      return res.status(401).json({
+      return res.status(404).json({
         error: true,
         message: "phone is invalid",
       });
