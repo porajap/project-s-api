@@ -202,3 +202,41 @@ export const confirmQueue = async (req, res) => {
     });
   });
 };
+
+export const getRegisterAt = async (req, res) => {
+  const { userId } = req.user;
+
+  let str = `SELECT 
+
+              ra.organizeId,
+              o.Name AS organizeName,
+              ot.organization_type_name AS typeName,
+              ot.format
+              
+              FROM register_at ra 
+              
+              
+              INNER JOIN organization o 
+              ON o.ID = ra.organizeId
+              
+              INNER JOIN  organization_type ot 
+              ON ot.id = o.organization_type_id
+              
+              WHERE ra.MemberId = ?`;
+
+  db.query(str, [userId], (err, results) => {
+    if (err) {
+      return res.status(400).json({
+        error: false,
+        message: "not found",
+        data: null,
+      });
+    }
+
+    return res.status(400).json({
+      error: false,
+      message: `register ${results.length}`,
+      data: results,
+    });
+  });
+};
