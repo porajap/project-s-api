@@ -103,7 +103,7 @@ export const checkPhone = async (req, res) => {
               ThFrist,
               ThLast,
               HnCode
-            FROM
+            FROM 
               member
               
             WHERE MobileNo = ?`;

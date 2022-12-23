@@ -62,7 +62,7 @@ export const getQueueDetail = async (req, res) => {
 
               AND DATE(queue.CreateDate) = DATE(NOW())`;
 
-  db.query(str, [userId, organizeId], (err, results) => {
+  db.query(str, [userId, organizeId], async (err, results) => {
     if (err || results.length == 0) {
       return res.status(200).json({
         error: false,
@@ -72,84 +72,21 @@ export const getQueueDetail = async (req, res) => {
     }
     const queue = results[0];
     const queueId = queue.id;
+    let [userData, detail] = await Promise.all([
+      userDetail({ userId }),
+      queueDetail({ queueId }),
+    ]);
 
-    str = `SELECT 
-  
-              queue_detail.ID AS id,
-              ExamRoomID AS roomId,
-              room.Name AS roomName,
-              queue_detail.Counter,
-              DATE_FORMAT(StartTime, '%d/%m/%Y, %H:%i') AS startTime,
-              DATE_FORMAT(EndTime, '%d/%m/%Y, %H:%i') AS endTime,
-              qNo AS queueOfRoom,
-              IF(Success, 1, 0) AS isSuccess
-              
-            FROM queue_detail
-            
-            INNER JOIN examination_room room
-            ON queue_detail.ExamRoomID = room.ID
-            
-            WHERE DATE(queue_detail.CreateDate) = DATE(NOW())
-            
-            AND queue_detail.queueId = ?
-            
-            AND queue_detail.Success = 0`;
+    if (detail) {
+      const qNo = detail.queueOfRoom;
+      const qNumber = queue.queueNo;
+      detail.queueFront = await queueFront({ qNo, qNumber });
+    }
 
-    db.query(str, [queueId], (err, results) => {
-      let detail = null;
-      let queueFront = 0;
-      if (err || results.length == 0) {
-        detail = null;
-      } else {
-        detail = results[0];
-
-        const qNo = detail.queueOfRoom;
-        const qNumber = queue.queueNo;
-        str = `SELECT 
-
-                COUNT(qd.qNo) AS countFrontQueue
-                
-                FROM queue q 
-                
-                INNER JOIN queue_detail qd 
-                ON qd.queueId = q.ID 
-                
-                WHERE DATE(q.Modify_DateTime) = DATE(NOW()) 
-                
-                AND qd.QueueNo != ?
-                                    
-                AND qd.Success = 0
-                
-                AND qd.qNo < ?`;
-
-        db.query(str, [qNumber, qNo], (err, results) => {
-          if (err || results.length == 0) {
-            queueFront = 0;
-          } else {
-            queueFront = results[0].countFrontQueue;
-            detail.queueFront = queueFront;
-          }
-
-          str = `
-                SELECT 
-                  m.ThTitle,
-                  m.ThFrist,
-                  m.ThLast,
-                  m.HnCode,
-                  m.MobileNo
-                FROM member m
-                WHERE m.ID = ?`;
-          db.query(str, [userId], (err, results) => {
-            const userDetail = results[0];
-
-            return res.status(200).json({
-              error: false,
-              message: "queue detail",
-              data: { userDetail, queue, detail },
-            });
-          });
-        });
-      }
+    return res.status(200).json({
+      error: false,
+      message: "queue detail",
+      data: { userData, queue, detail },
     });
   });
 };
@@ -251,6 +188,97 @@ export const updateHNCode = async (req, res) => {
     return res.status(200).json({
       error: false,
       message: "update successful",
+    });
+  });
+};
+
+const queueDetail = async (req) => {
+  return new Promise((resolve) => {
+    const { queueId } = req;
+
+    let str = `SELECT 
+  
+              queue_detail.ID AS id,
+              ExamRoomID AS roomId,
+              room.Name AS roomName,
+              queue_detail.Counter,
+              DATE_FORMAT(StartTime, '%d/%m/%Y, %H:%i') AS startTime,
+              DATE_FORMAT(EndTime, '%d/%m/%Y, %H:%i') AS endTime,
+              qNo AS queueOfRoom,
+              IF(Success, 1, 0) AS isSuccess
+              
+            FROM queue_detail
+            
+            INNER JOIN examination_room room
+            ON queue_detail.ExamRoomID = room.ID
+            
+            WHERE DATE(queue_detail.CreateDate) = DATE(NOW())
+            
+            AND queue_detail.queueId = ?
+            
+            AND queue_detail.Success = 0`;
+
+    db.query(str, [queueId], (err, results) => {
+      if (err || results.length == 0) {
+        resolve(null);
+      }
+
+      resolve(results[0]);
+    });
+  });
+};
+
+const queueFront = async (req) => {
+  return new Promise((resolve) => {
+    const { qNo, qNumber } = req;
+
+    let str = `SELECT
+
+                COUNT(qd.qNo) AS countFrontQueue
+
+                FROM queue q
+
+                INNER JOIN queue_detail qd
+                ON qd.queueId = q.ID
+
+                WHERE DATE(q.Modify_DateTime) = DATE(NOW())
+
+                AND qd.QueueNo != ?
+
+                AND qd.Success = 0
+
+                AND qd.qNo < ?`;
+
+    db.query(str, [qNumber, qNo], (err, results) => {
+      if (err || results.length == 0) {
+        resolve(0);
+      }
+
+      resolve(results[0].countFrontQueue);
+    });
+  });
+};
+
+const userDetail = async (req) => {
+  return new Promise((resolve) => {
+    const { userId } = req;
+
+    let str = `
+          SELECT
+            m.ThTitle,
+            m.ThFrist,
+            m.ThLast,
+            m.HnCode,
+            m.MobileNo
+          FROM member m
+          WHERE m.ID = ?`;
+
+    db.query(str, [userId], (err, results) => {
+      if (err || results.length == 0) {
+        resolve(null);
+      }
+
+      resolve(results[0]);
     });
   });
 };
