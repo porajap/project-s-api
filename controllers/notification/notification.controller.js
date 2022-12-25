@@ -17,7 +17,6 @@ export const addToken = async (req, res) => {
     message: "Inserted user token",
   });
 
-  console.log(countToken);
 };
 
 const checkHasTokenUser = async (userId, req) => {
