@@ -110,6 +110,8 @@ export const confirmQueue = async (req, res) => {
    INNER JOIN queue_detail qd ON qd.queueId = q.ID
    
    WHERE q.Confirm = 1
+
+   AND q.CreateDate = DATE(NOW())
    
    AND q.organization_id = ? AND qd.ExamRoomID = ?`;
 
@@ -269,7 +271,9 @@ const userDetail = async (req) => {
             m.ThFrist,
             m.ThLast,
             m.HnCode,
-            m.MobileNo
+            m.MobileNo,
+            DATE_FORMAT(DATE(NOW()), '%d/%m/%Y') AS dateAt,
+            TIME(NOW()) AS timeAt
           FROM member m
           WHERE m.ID = ?`;
 
