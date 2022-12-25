@@ -23,5 +23,7 @@ app.use("/api/auth", authRoute);
 import qRoute from "./routes/queue/queue.route.js";
 app.use("/api/queue", qRoute);
 
+import fcmRoute from "./routes/notification/notification.route.js";
+app.use("/api/notification", fcmRoute);
 
 app.listen(PORT, () => console.log(`App is listening on PORT ${PORT}`));
