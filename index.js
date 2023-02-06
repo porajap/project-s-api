@@ -17,6 +17,9 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome" });
 });
 
+import dashboardRoute from "./routes/dashboard/dashboard.route.js";
+app.use("/api/dashboard", dashboardRoute);
+
 import authRoute from "./routes/auth/auth.route.js";
 app.use("/api/auth", authRoute);
 
