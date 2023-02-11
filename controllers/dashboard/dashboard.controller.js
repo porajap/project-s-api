@@ -85,13 +85,19 @@ const createToken = (username, password) => {
     await db.query(
       `SELECT 
 
-          employee.*,
-          organization.Name AS organizeName 
+        employee.*,
+        organization.Name AS organizeName,
+        organization.organization_type_id,
+        organization_type.format,
+        organization_type_name
           
-        FROM employee 
-        
-        INNER JOIN organization
-        ON employee.organization_id = organization.ID
+      FROM employee 
+      
+      INNER JOIN organization
+      ON employee.organization_id = organization.ID
+
+      INNER JOIN organization_type 
+      ON organization_type.id = organization.organization_type_id
 
       WHERE employee.username = ? LIMIT 1`,
       [username],
@@ -134,6 +140,8 @@ const createToken = (username, password) => {
               fName: userData.FirstName,
               lName: userData.LastName,
               organizeName: userData.organizeName,
+              format: userData.format,
+              typeName: userData.organization_type_name,
             },
           };
 
