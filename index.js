@@ -8,7 +8,8 @@ dotenv.config();
 const PORT = process.env.TOKEN_SERVER_PORT || 4000;
 const app = express();
 
-app.use(express.json());''
+app.use(express.json());
+("");
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

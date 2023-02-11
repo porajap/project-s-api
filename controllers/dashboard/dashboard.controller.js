@@ -207,7 +207,7 @@ const getTimeUsedMaxMinOfDayFromDB = (organizeId) => {
                   
                   AND detail.Success = 1
 
-                  AND q.organization_id = ?
+                  AND queue.organization_id = ?
                   
                   ORDER BY minutes`;
 
